@@ -3,7 +3,7 @@
 // Maps backend response to the exact same structure as mock-data.ts
 // so all frontend pages work without any changes
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://india-run-hackathon.onrender.com";
 
 // ─── The real JD text (from the hackathon) ────────────────────────────────────
 export const REAL_JD = `Job Description: Senior AI Engineer — Founding Team
