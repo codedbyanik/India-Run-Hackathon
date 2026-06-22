@@ -1,18 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard-layout";
 import CandidateCard from "@/components/ui/candidate-card";
-import { candidates } from "@/lib/mock-data";
+import { rankCandidates } from "@/lib/api";
 import { Filter, SlidersHorizontal } from "lucide-react";
 
 export default function CandidatesPage() {
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalCandidates, setTotalCandidates] = useState(100000);
+
   const [minScore, setMinScore] = useState(0);
   const [minBehavior, setMinBehavior] = useState(0);
   const [minTrust, setMinTrust] = useState(0);
   const [expFilter, setExpFilter] = useState("all");
   const [availFilter, setAvailFilter] = useState("all");
   const [showHiddenOnly, setShowHiddenOnly] = useState(false);
+
+  // Fetch real candidates from backend on mount
+  useEffect(() => {
+    async function fetchCandidates() {
+      try {
+        setLoading(true);
+        const data = await rankCandidates();
+        setCandidates(data.candidates);
+        setTotalCandidates(data.totalCandidates);
+      } catch (err) {
+        console.error("Failed to fetch candidates:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCandidates();
+  }, []);
 
   const filtered = candidates.filter((c) => {
     if (c.fitScore < minScore) return false;
@@ -28,7 +49,11 @@ export default function CandidatesPage() {
   return (
     <DashboardLayout
       title="Candidate Rankings"
-      subtitle={`${filtered.length} candidates ranked · Senior ML Engineer`}
+      subtitle={
+        loading
+          ? "Loading candidates..."
+          : `${filtered.length} candidates ranked · Senior AI Engineer · Redrob AI`
+      }
     >
       <div className="flex gap-5">
         {/* Filters sidebar */}
@@ -172,10 +197,10 @@ export default function CandidatesPage() {
           <div className="bg-[#0a0a0a] border border-[#18181b] rounded-xl p-4">
             <div className="label-caps text-[#52525b] mb-3">Cohort Summary</div>
             {[
-              { label: "Total Analyzed", value: "1,847" },
-              { label: "Top 5%", value: "92" },
-              { label: "Hidden Talent", value: "23" },
-              { label: "Avg Fit Score", value: "73.4" },
+              { label: "Total Analyzed", value: totalCandidates.toLocaleString() },
+              { label: "Top Ranked", value: candidates.length.toString() },
+              { label: "Hidden Talent", value: candidates.filter(c => c.tags.includes("Hidden Talent")).length.toString() },
+              { label: "Avg Fit Score", value: candidates.length ? Math.round(candidates.reduce((a, c) => a + c.fitScore, 0) / candidates.length).toString() : "—" },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between py-1.5 border-b border-[#18181b] last:border-0">
                 <span className="label-caps text-[#52525b]">{label}</span>
@@ -205,16 +230,25 @@ export default function CandidatesPage() {
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {/* Loading state */}
+          {loading && (
+            <div className="bg-white border border-[#f3f4f6] rounded-xl p-12 text-center">
+              <div className="label-caps text-[#71717a] mb-2">Ranking 100,000 candidates...</div>
+              <p className="text-sm text-[#a1a1aa]">Semantic scoring + behavioral signals + AI skills analysis</p>
+            </div>
+          )}
+
+          {!loading && filtered.length === 0 && (
             <div className="bg-white border border-[#f3f4f6] rounded-xl p-12 text-center">
               <div className="label-caps text-[#71717a] mb-2">No candidates match filters</div>
               <p className="text-sm text-[#a1a1aa]">Try adjusting your filter criteria</p>
             </div>
-          ) : (
+          )}
+
+          {!loading &&
             filtered.map((candidate) => (
               <CandidateCard key={candidate.id} candidate={candidate} />
-            ))
-          )}
+            ))}
         </div>
       </div>
     </DashboardLayout>
